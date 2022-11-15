@@ -1,4 +1,5 @@
 import {
+  AfterContentInit,
   Component,
   ElementRef,
   Input,
@@ -7,18 +8,12 @@ import {
   SimpleChanges,
   ViewEncapsulation,
 } from '@angular/core';
-
+import { StackedData } from './interface';
 import {
-  axisBottom,
-  axisLeft,
-  scaleBand,
-  scaleLinear,
-  scaleOrdinal,
-  schemeTableau10,
-  select,
-  stack,
-} from 'd3';
-import { StackedBarChartData } from './interface';
+  removeExistingChart,
+  StackedBarChart,
+  StackedBarChartData,
+} from './stacked-bar-chart';
 
 @Component({
   selector: 'app-stacked-bar-chart',
@@ -32,22 +27,45 @@ export class StackedBarChartComponent implements OnInit, OnChanges {
   @Input() margin = { top: 0, right: 0, bottom: 0, left: 0 }; // margin for chart
   @Input() xTick = true; // chart show horizontal lines
   @Input() yTick = false; // chart show vertical lines
-  @Input() data!: StackedBarChartData;
+  @Input() stackedData!: StackedData;
 
   hostElement: any; // Native element hosting the SVG container
-  // svg: any;
+  svg: any;
   // xAxis!: any;
   // yAxis!: any;
 
   constructor(private elRef: ElementRef) {
+    console.log(elRef);
     this.hostElement = this.elRef.nativeElement;
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    // this.createChart();
+  }
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['data']) {
+    console.log(changes);
+    if (changes['stackedData']) {
+      this.createChart();
     }
   }
 
-  private createChart() {}
+  private createChart() {
+    removeExistingChart(this.hostElement);
+
+    this.svg = StackedBarChart(
+      this.stackedData.data(),
+      {
+        x: this.stackedData.x,
+        y: this.stackedData.y,
+        z: this.stackedData.z,
+      } as StackedBarChartData,
+      this.hostElement
+    );
+  }
+  public updateChart(data: any[]) {
+    if (!this.svg) {
+      this.createChart();
+      return;
+    }
+  }
 }

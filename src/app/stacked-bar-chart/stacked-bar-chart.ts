@@ -1,5 +1,26 @@
 import * as d3 from 'd3';
-import { StackedBarChartData } from './interface';
+
+export declare interface StackedBarChartData {
+  x: (d: any, i: number) => any; // given d in data, returns the (ordinal) x-value
+  y: (d: any, i: number) => any; // given d in data, returns the (quantitative) y-value
+  z: (d: any, i: number) => any; // given d in data, returns the (categorical) z-value
+  title: (d: any) => any; // given d in data, returns the title text
+  marginTop: number; // top margin, in pixels
+  marginRight: number; // right margin, in pixels
+  marginBottom: number; // bottom margin, in pixels
+  marginLeft: number; // left margin, in pixels
+  width: number; // outer width, in pixels
+  height: number; // outer height, in pixels
+  xDomain: any[]; // array of x-values
+  xPadding: number; // amount of x-range to reserve to separate bars
+  xTick: boolean;
+  yDomain: [number, number]; // [ymin, ymax]
+  yTick: boolean;
+  yFormat: string; // a format specifier string for the y-axis
+  yLabel: string; // a label for the y-axis
+  zDomain: any[]; // array of z-values
+  colors: readonly string[];
+}
 
 export function StackedBarChart(
   data: any[],
@@ -16,12 +37,12 @@ export function StackedBarChart(
     height = 400, // outer height, in pixels
     xDomain, // array of x-values
     xPadding = 0.1, // amount of x-range to reserve to separate bars
-    xTick = true,
+    xTick = false,
     yDomain, // [ymin, ymax]
     zDomain, // array of z-values
     yFormat, // a format specifier string for the y-axis
     yLabel, // a label for the y-axis
-    yTick = false,
+    yTick = true,
     colors = d3.schemeTableau10,
   }: StackedBarChartData,
   hostElement: any
@@ -34,17 +55,23 @@ export function StackedBarChart(
   // Compute default x- and z-domains, and unique them.
   if (xDomain === undefined) {
     xDomain = Array.from(new d3.InternSet(X)).sort();
+    console.log('xDomain', xDomain);
   }
   if (zDomain === undefined) {
     zDomain = Array.from(new d3.InternSet(Z)).sort();
+    console.log('zDomain', zDomain);
   }
   if (yDomain === undefined) {
     yDomain = [0, Math.ceil(Math.max(...Y) * 1.2)];
+    console.log('yDomain', yDomain);
   }
 
   // Compute default x- and z-domains, and unique them.
   let xRange = [marginLeft, width - marginRight]; // [left, right]
+  console.log('xRange', xRange);
+
   let yRange = [height - marginBottom, marginTop]; // [bottom, top]
+  console.log('yRange', yRange);
 
   // Construct scales, axes, and formats.
   const xScale = d3.scaleBand(xDomain, xRange).paddingInner(xPadding);
@@ -54,16 +81,16 @@ export function StackedBarChart(
   const svg = d3
     .select(hostElement)
     .append('svg')
-    .attr('width', '100%')
-    .attr('height', '100%')
-    .attr('viewBox', [0, 0, width, height])
+    .attr('width', width)
+    .attr('height', height)
+    // .attr('viewBox', [0, 0, 100, 200]);
     .attr('style', 'max-width: 100%; height: auto; height: intrinsic;');
 
   // create X axis
   const xAxis = d3.axisBottom(xScale).tickSizeOuter(0);
 
   // create Y axis
-  const yAxis = d3.axisLeft(yScale).ticks(height / 10, yFormat);
+  const yAxis = d3.axisLeft(yScale).ticks(5, yFormat);
 
   // translate chart
   svg.append('g').attr('transform', `translate(${marginLeft}, ${marginTop})`);
@@ -71,7 +98,7 @@ export function StackedBarChart(
   // translate Y axis
   const gY = svg
     .append('g')
-    .attr('transform', `tanslate(${marginLeft},0)`)
+    .attr('transform', `translate(${marginLeft},0)`)
     .call(yAxis)
     .call((g) =>
       g
@@ -97,7 +124,7 @@ export function StackedBarChart(
   // translate X axis
   const gX = svg
     .append('g')
-    .attr('transform', `tanslate(0, ${yScale(0)})`)
+    .attr('transform', `translate(0, ${yScale(0)})`)
     .call(xAxis);
 
   if (xTick) {
@@ -110,8 +137,8 @@ export function StackedBarChart(
         .attr('stroke-opacity', 0.6)
     );
   }
-
-  const stackedData = d3.stack().keys(zDomain)(data);
+  const stackedData = d3.stack().keys(['type', 'count'])(data);
+  console.log(stackedData);
   const bar = svg
     .append('g')
     .selectAll('g')
@@ -119,14 +146,28 @@ export function StackedBarChart(
     .join('g')
     .attr('fill', (d) => color(d.key))
     .selectAll('rect')
-    .data((d) => d)
+    .data((d) => {
+      // console.log(d);
+      return d;
+    })
     .join('rect')
     .attr('x', (_, i) => xScale(X[i]) ?? 0)
-    .attr('y', ([y1, y2]) => Math.min(yScale(y1), yScale(y2)))
+    .attr('y', ([, end]) => {
+      // console.log(end);
+      return yScale(end);
+    })
     .attr('height', ([y1, y2]) => Math.abs(yScale(y1) - yScale(y2)))
     .attr('width', xScale.bandwidth());
 
   if (title) bar.append('title').text((d) => title(d));
 
-  return svg.node();
+  return svg;
+}
+
+export function removeExistingChart(hostElement: any) {
+  // !!!!Caution!!!
+  // Make sure not to do;
+  //     d3.select('svg').remove();
+  // That will clear all other SVG elements in the DOM
+  d3.select(hostElement).select('svg').remove();
 }
