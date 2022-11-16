@@ -1,8 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { StackedBarChartComponent } from './stacked-bar-chart/stacked-bar-chart.component';
-import { TestStackedData } from './app.data';
+import { ChartData, Data, stackColor } from './stacked-bar-chart/interface';
 
 @Component({
   selector: 'app-root',
@@ -13,28 +12,27 @@ export class AppComponent {
   title = 'd3-in-angular';
   @ViewChild('stackedBarChart', { static: true })
   // chart!: StackedBarChartComponent;
-  chartData!: TestStackedData;
+  chartData!: ChartData;
   constructor(private http: HttpClient) {
     this.http.get('/api/bar-chart').subscribe((res: any) => {
       console.log(res);
       const data = res.data.frontend;
-      const stackdata: any[] = [];
+      const items: Data[] = [];
       const bandwiths = Object.keys(data);
       bandwiths.forEach((bw) => {
         const branch = data[bw]['SBTS00'];
-        stackdata.push({
-          bandwdith: bw,
-          count: branch['bts_count'],
-          type: 'bts',
-        });
-        stackdata.push({
-          bandwdith: bw,
-          count: branch['cell_count'],
-          type: 'cell',
-        });
+        items.push({
+          x: bw,
+          z1: branch['bts_count'],
+          z2: branch['cell_count'],
+        } as Data);
       });
-      console.log(stackdata);
-      this.chartData = new TestStackedData(stackdata);
+      console.log(items);
+      this.chartData = {
+        items,
+        colums: ['x', 'z1', 'z2'],
+        colors: { z1: '#ffff00', z2: '#00ff00' } as stackColor,
+      };
     });
   }
 }

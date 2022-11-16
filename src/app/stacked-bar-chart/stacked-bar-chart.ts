@@ -137,14 +137,33 @@ export function StackedBarChart(
         .attr('stroke-opacity', 0.6)
     );
   }
-  const stackedData = d3.stack().keys(['type', 'count'])(data);
+
+  // Omit any data not present in the x- and z-domains.
+  const I = d3.range(X.length);
+  let dt: any = d3.rollup(
+    I,
+    ([i]) => i,
+    (i) => X[i],
+    (i) => Z[i]
+  );
+  const stackedData = d3
+    .stack()
+    .keys(zDomain)
+    .value((d, key, i, data) => {
+      console.log(x, I, z);
+      return Y[d[key]];
+    })
+    .order(d3.stackOrderNone)
+    .offset(d3.stackOffsetDiverging)(data)
+    .map((s) => s.map((d) => Object.assign(d, { i: d.data[1] })));
   console.log(stackedData);
+
   const bar = svg
     .append('g')
     .selectAll('g')
     .data(stackedData)
     .join('g')
-    .attr('fill', (d) => color(d.key))
+    .attr('fill', (d) => color(d))
     .selectAll('rect')
     .data((d) => {
       // console.log(d);

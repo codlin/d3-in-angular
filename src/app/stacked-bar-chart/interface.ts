@@ -1,6 +1,14 @@
-export declare interface StackedData {
-  x: (d: any, i: any) => any; // given d in data, returns the (ordinal) x-value
-  y: (d: any, i: any) => any; // given d in data, returns the (quantitative) y-value
-  z: (d: any, i: any) => any; // given d in data, returns the (categorical) z-value
-  data: () => any;
+export declare interface Data {
+  x: string;
+  z1: number;
+  z2: number;
+}
+export type stackColor = {
+  [k: string]: string;
+};
+
+export declare interface ChartData {
+  items: Data[];
+  colums: string[];
+  colors: stackColor;
 }
