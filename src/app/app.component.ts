@@ -1,7 +1,9 @@
-import { Component, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { ChartData, Data, stackColor } from './stacked-bar-chart/interface';
+import { StackedBarChartComponent } from './stacked-bar-chart/stacked-bar-chart.component';
+import { fromEvent } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -10,8 +12,10 @@ import { ChartData, Data, stackColor } from './stacked-bar-chart/interface';
 })
 export class AppComponent {
   title = 'd3-in-angular';
+
   @ViewChild('stackedBarChart', { static: true })
-  // chart!: StackedBarChartComponent;
+  chart!: StackedBarChartComponent;
+
   chartData!: ChartData;
   constructor(private http: HttpClient) {
     this.http.get('/api/bar-chart').subscribe((res: any) => {
@@ -31,8 +35,9 @@ export class AppComponent {
       this.chartData = {
         items,
         colums: ['x', 'z1', 'z2'],
-        colors: { z1: '#ffff00', z2: '#00ff00' } as stackColor,
+        colors: { z1: '#68C214', z2: '#fff633' } as stackColor,
       };
     });
   }
+  
 }

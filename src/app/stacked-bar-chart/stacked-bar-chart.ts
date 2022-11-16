@@ -188,5 +188,6 @@ export function removeExistingChart(hostElement: any) {
   // Make sure not to do;
   //     d3.select('svg').remove();
   // That will clear all other SVG elements in the DOM
+  console.log('remove svg');
   d3.select(hostElement).select('svg').remove();
 }

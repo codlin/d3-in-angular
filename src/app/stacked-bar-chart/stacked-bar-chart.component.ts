@@ -1,4 +1,6 @@
 import {
+  AfterContentInit,
+  AfterViewInit,
   Component,
   ElementRef,
   Input,
@@ -8,8 +10,9 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import * as d3 from 'd3';
+import { fromEvent } from 'rxjs';
 
-import { ChartData, stackColor } from './interface';
+import { ChartData } from './interface';
 import { removeExistingChart } from './stacked-bar-chart';
 
 @Component({
@@ -18,18 +21,16 @@ import { removeExistingChart } from './stacked-bar-chart';
   template: '<svg></svg>',
   styleUrls: ['./stacked-bar-chart.component.scss'],
 })
-export class StackedBarChartComponent implements OnInit, OnChanges {
-  @Input() height = 50; // chart default height
-  @Input() width = 100; // chart default width
-  @Input() margin = { top: 0, right: 0, bottom: 0, left: 0 }; // margin for chart
+export class StackedBarChartComponent
+  implements OnInit, OnChanges, AfterViewInit
+{
+  @Input() height = 300; // chart default height
+  @Input() width = 500; // chart default width
+  @Input() margin = { top: 30, right: 30, bottom: 30, left: 30 }; // margin for chart
   @Input() xTick = true; // chart show horizontal lines
-  @Input() yTick = false; // chart show vertical lines
+  @Input() yTick = true; // chart show vertical lines
   @Input() title!: string;
-  @Input() data: ChartData = {
-    items: [],
-    colums: [],
-    colors: {} as stackColor,
-  } as ChartData;
+  @Input() data!: ChartData;
 
   hostElement: any; // Native element hosting the SVG container
   svg: any;
@@ -42,11 +43,19 @@ export class StackedBarChartComponent implements OnInit, OnChanges {
   }
 
   ngOnInit(): void {
-    // this.createChart();
+    this.createChart();
+    fromEvent(window, 'resize').subscribe((event) => {
+      this.height = this.hostElement.nativeElement.offsetHeight;
+      this.width = this.hostElement.nativeElement.offsetWidth;
+      console.log(this.height, this.height);
+    });
   }
+
+  ngAfterViewInit() {}
+
   ngOnChanges(changes: SimpleChanges): void {
-    console.log(changes);
-    if (changes['data']) {
+    console.log('ngOnChanges', changes['data'].currentValue);
+    if (changes['data'].currentValue?.items) {
       this.createChart();
     }
   }
@@ -55,15 +64,15 @@ export class StackedBarChartComponent implements OnInit, OnChanges {
     removeExistingChart(this.hostElement);
 
     // Compute values.
+    console.log('===', this.data.items);
     const X = d3.map(this.data.items, (v) => v.x);
     const Y = d3.map(this.data.items, (v) => [v.z1, v.z2]);
-    const Z = d3.map(this.data.colums, (v) => v.slice(1));
 
     // Compute default x- and z-domains, and unique them.
     const xDomain = Array.from(new d3.InternSet(X)).sort();
     console.log('xDomain', xDomain);
 
-    const zDomain = Array.from(new d3.InternSet(Z)).sort();
+    const zDomain = this.data.colums.slice(1);
     console.log('zDomain', zDomain);
 
     const yDomain = [
@@ -85,17 +94,19 @@ export class StackedBarChartComponent implements OnInit, OnChanges {
       (k) => this.data.colors[k]
     );
     // Construct scales, axes, and formats.
-    const xScale = d3.scaleBand(xDomain, xRange).paddingInner(0.1);
+    const xScale = d3.scaleBand(xDomain, xRange).padding(0.2);
     const yScale = d3.scaleLinear(yDomain, yRange).nice();
     const color = d3.scaleOrdinal(zDomain, colors);
 
     const svg = d3
       .select(this.hostElement)
       .append('svg')
-      .attr('width', this.width)
-      .attr('height', this.height)
-      // .attr('viewBox', [0, 0, 100, 200]);
-      .attr('style', 'max-width: 100%; height: auto; height: intrinsic;');
+      // .attr('width', this.width)
+      .attr('width', '100%')
+      // .attr('height', this.height);
+      .attr('height', '100%')
+      .attr('viewBox', [0, 0, this.height, this.width]);
+    // .attr('style', 'max-width: 100%; height: auto; height: intrinsic;');
 
     // create X axis
     const xAxis = d3.axisBottom(xScale).tickSizeOuter(0);
@@ -162,6 +173,7 @@ export class StackedBarChartComponent implements OnInit, OnChanges {
       .data(stackedData)
       .join('g')
       .attr('fill', (d) => color(d.key))
+      .attr('fill-opacity', 0.75)
       .selectAll('rect')
       .data((d) => {
         // console.log(d);
