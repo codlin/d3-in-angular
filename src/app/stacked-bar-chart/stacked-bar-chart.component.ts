@@ -1,5 +1,5 @@
+import { HttpClient } from '@angular/common/http';
 import {
-  AfterContentInit,
   AfterViewInit,
   Component,
   ElementRef,
@@ -7,18 +7,19 @@ import {
   OnChanges,
   OnInit,
   SimpleChanges,
+  ViewChild,
   ViewEncapsulation,
 } from '@angular/core';
 import * as d3 from 'd3';
 import { fromEvent } from 'rxjs';
 
-import { ChartData } from './interface';
+import { ChartData, Data, stackColor } from './interface';
 import { removeExistingChart } from './stacked-bar-chart';
 
 @Component({
   selector: 'app-stacked-bar-chart',
   encapsulation: ViewEncapsulation.None,
-  template: '<svg></svg>',
+  template: '<div #stackedBarChart><svg></svg><div>',
   styleUrls: ['./stacked-bar-chart.component.scss'],
 })
 export class StackedBarChartComponent
@@ -30,28 +31,52 @@ export class StackedBarChartComponent
   @Input() xTick = true; // chart show horizontal lines
   @Input() yTick = true; // chart show vertical lines
   @Input() title!: string;
-  @Input() data!: ChartData;
+  data!: ChartData;
+
+  @ViewChild('stackedBarChart') chart!: ElementRef;
 
   hostElement: any; // Native element hosting the SVG container
   svg: any;
   // xAxis!: any;
   // yAxis!: any;
 
-  constructor(private elRef: ElementRef) {
+  constructor(private http: HttpClient, private elRef: ElementRef) {
     console.log(elRef);
-    this.hostElement = this.elRef.nativeElement;
   }
 
   ngOnInit(): void {
-    this.createChart();
-    fromEvent(window, 'resize').subscribe((event) => {
-      this.height = this.hostElement.nativeElement.offsetHeight;
-      this.width = this.hostElement.nativeElement.offsetWidth;
-      console.log(this.height, this.height);
+    this.http.get('/api/bar-chart').subscribe((res: any) => {
+      console.log(res);
+      this.hostElement = this.chart.nativeElement;
+
+      const data = res.data.frontend;
+      const items: Data[] = [];
+      const bandwiths = Object.keys(data);
+      bandwiths.forEach((bw) => {
+        const branch = data[bw]['SBTS00'];
+        items.push({
+          x: bw,
+          z1: branch['bts_count'],
+          z2: branch['cell_count'],
+        } as Data);
+      });
+      console.log(items);
+      this.data = {
+        items,
+        colums: ['x', 'z1', 'z2'],
+        colors: { z1: '#68C214', z2: '#fff633' } as stackColor,
+      };
+      this.createChart();
     });
   }
 
-  ngAfterViewInit() {}
+  ngAfterViewInit() {
+    fromEvent(window, 'resize').subscribe((event) => {
+      this.height = this.hostElement.offsetHeight;
+      this.width = this.hostElement.offsetWidth;
+      console.log(this.height, this.height);
+    });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     console.log('ngOnChanges', changes['data'].currentValue);
@@ -105,14 +130,13 @@ export class StackedBarChartComponent
       .attr('width', '100%')
       // .attr('height', this.height);
       .attr('height', '100%')
-      .attr('viewBox', [0, 0, this.height, this.width]);
-    // .attr('style', 'max-width: 100%; height: auto; height: intrinsic;');
+      .attr('viewBox', [0, 0, this.width, this.height]);
 
     // create X axis
     const xAxis = d3.axisBottom(xScale).tickSizeOuter(0);
 
     // create Y axis
-    const yAxis = d3.axisLeft(yScale).ticks(5);
+    const yAxis = d3.axisLeft(yScale).ticks(6);
 
     // translate chart
     svg
@@ -186,7 +210,10 @@ export class StackedBarChartComponent
         return yScale(end);
       })
       .attr('height', ([y1, y2]) => Math.abs(yScale(y1) - yScale(y2)))
-      .attr('width', xScale.bandwidth());
+      .attr('width', xScale.bandwidth())
+      .on('mouseover', function (d) {
+        console.log(d);
+      });
 
     if (this.title) bar.append('title').text(this.title);
 
