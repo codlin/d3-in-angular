@@ -11,6 +11,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import * as d3 from 'd3';
+import { schemeDark2 } from 'd3';
 import { fromEvent } from 'rxjs';
 
 import { ChartData, Data, stackColor } from './interface';
@@ -19,7 +20,7 @@ import { removeExistingChart } from './stacked-bar-chart';
 @Component({
   selector: 'app-stacked-bar-chart',
   encapsulation: ViewEncapsulation.None,
-  template: '<div #stackedBarChart><svg></svg><div>',
+  templateUrl: './stacked-bar-chart.component.html',
   styleUrls: ['./stacked-bar-chart.component.scss'],
 })
 export class StackedBarChartComponent
@@ -34,11 +35,13 @@ export class StackedBarChartComponent
   data!: ChartData;
 
   @ViewChild('stackedBarChart') chart!: ElementRef;
+  tipTitle: string = '';
+  typeName = '';
+  typeValue = 0;
 
   hostElement: any; // Native element hosting the SVG container
-  svg: any;
-  // xAxis!: any;
-  // yAxis!: any;
+  yAxis: any;
+  xAxis: any;
 
   constructor(private http: HttpClient, private elRef: ElementRef) {
     console.log(elRef);
@@ -74,7 +77,10 @@ export class StackedBarChartComponent
     fromEvent(window, 'resize').subscribe((event) => {
       this.height = this.hostElement.offsetHeight;
       this.width = this.hostElement.offsetWidth;
-      console.log(this.height, this.height);
+      console.log(this.height, this.width);
+      const svg = d3.select(this.hostElement).selectAll('svg');
+      svg.transition().duration(1000);
+      svg.select('.x.axis').transition().duration(1000).call(this.xAxis);
     });
   }
 
@@ -100,12 +106,13 @@ export class StackedBarChartComponent
     const zDomain = this.data.colums.slice(1);
     console.log('zDomain', zDomain);
 
-    const yDomain = [
-      0,
-      Math.ceil(
-        Math.max(...Y.map((v) => v.reduce((pre, curr) => pre + curr))) * 1.2
-      ),
-    ];
+    let ymax = Math.ceil(
+      Math.max(...Y.map((v) => v.reduce((pre, curr) => pre + curr)))
+    );
+    // console.log('ymax', ymax);
+    ymax = Math.floor(ymax / 10) * 10 + (ymax % 10 === 0 ? 0 : 10);
+    // console.log('ymax', ymax);
+    const yDomain = [0, ymax];
     console.log('yDomain', yDomain);
 
     // Compute default x- and z-domains, and unique them.
@@ -127,16 +134,18 @@ export class StackedBarChartComponent
       .select(this.hostElement)
       .append('svg')
       // .attr('width', this.width)
-      .attr('width', '100%')
       // .attr('height', this.height);
+      .attr('width', '100%')
       .attr('height', '100%')
       .attr('viewBox', [0, 0, this.width, this.height]);
 
     // create X axis
-    const xAxis = d3.axisBottom(xScale).tickSizeOuter(0);
+    const xAxis = d3.axisBottom(xScale).tickSize(2);
+    this.xAxis = xAxis;
 
     // create Y axis
-    const yAxis = d3.axisLeft(yScale).ticks(6);
+    const yAxis = d3.axisLeft(yScale).tickSize(2);
+    this.yAxis = yAxis;
 
     // translate chart
     svg
@@ -146,6 +155,7 @@ export class StackedBarChartComponent
     // translate Y axis
     const gY = svg
       .append('g')
+      .attr('class', 'y axis')
       .attr('transform', `translate(${this.margin.left},0)`)
       .call(yAxis)
       .call(
@@ -166,13 +176,14 @@ export class StackedBarChartComponent
           .clone()
           .attr('x2', this.width - this.margin.left - this.margin.right)
           .attr('stroke-width', 0.1)
-          .attr('stroke-opacity', 0.6)
+          .attr('stroke-opacity', 0.4)
       );
     }
 
     // translate X axis
     const gX = svg
       .append('g')
+      .attr('class', 'x axis')
       .attr('transform', `translate(0, ${yScale(0)})`)
       .call(xAxis);
 
@@ -183,13 +194,14 @@ export class StackedBarChartComponent
           .clone()
           .attr('y2', -this.height + this.margin.top + this.margin.bottom)
           .attr('stroke-width', 0.1)
-          .attr('stroke-opacity', 0.6)
+          .attr('stroke-opacity', 0.4)
       );
     }
 
     // Omit any data not present in the x- and z-domains.
     const data: any = this.data.items;
     const stackedData = d3.stack().keys(zDomain)(data);
+    console.log('stacked data', stackedData);
 
     const bar = svg
       .append('g')
@@ -204,25 +216,38 @@ export class StackedBarChartComponent
         return d;
       })
       .join('rect')
-      .attr('x', (_, i) => xScale(X[i]) ?? 0)
-      .attr('y', ([, end]) => {
-        // console.log(end);
-        return yScale(end);
+      .attr('x', (d, i) => {
+        // console.log(d);
+        return xScale(X[i]) as number;
       })
+      .attr('y', ([, end]) => yScale(end))
       .attr('height', ([y1, y2]) => Math.abs(yScale(y1) - yScale(y2)))
       .attr('width', xScale.bandwidth())
-      .on('mouseover', function (d) {
-        console.log(d);
+
+      .on('mouseover', function (event, d) {
+        console.log(event, d);
+        let value = d[1] - d[0];
+        let data = d['data'] as unknown as Data;
+        d3.select('#tooltip').select('#title').text(data.x);
+        d3.select('#tooltip').select('#values').text(value);
+        // 显示提示条
+        d3.select('#tooltip').classed('hidden', false);
+      })
+      .on('mousemove', function (event) {
+        // 更新提示条的位置和值
+        d3.select('#tooltip')
+          .style('top', event.pageY - 10 + 'px')
+          .style('left', event.pageX + 10 + 'px')
+          .select('#value')
+          .text(event);
+      })
+      .on('mouseout', function () {
+        /// 隐藏提示条
+        d3.select('#tooltip').classed('hidden', true);
       });
 
     if (this.title) bar.append('title').text(this.title);
 
     return svg;
-  }
-  public updateChart(data: any[]) {
-    if (!this.svg) {
-      this.createChart();
-      return;
-    }
   }
 }
