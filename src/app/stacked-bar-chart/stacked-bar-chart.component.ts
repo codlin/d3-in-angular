@@ -206,24 +206,27 @@ export class StackedBarChartComponent
     const bar = svg
       .append('g')
       .selectAll('g')
+      // Enter in the stack data = loop key per key = group per group
       .data(stackedData)
-      .join('g')
+      .enter()
+      .append('g')
       .attr('fill', (d) => color(d.key))
       .attr('fill-opacity', 0.75)
       .selectAll('rect')
+      // enter a second time = loop subgroup per subgroup to add all rectangles
       .data((d) => {
-        // console.log(d);
+        console.log(d);
         return d;
       })
-      .join('rect')
+      .enter()
+      .append('rect')
       .attr('x', (d, i) => {
-        // console.log(d);
+        console.log(d);
         return xScale(X[i]) as number;
       })
       .attr('y', ([, end]) => yScale(end))
       .attr('height', ([y1, y2]) => Math.abs(yScale(y1) - yScale(y2)))
       .attr('width', xScale.bandwidth())
-
       .on('mouseover', function (event, d) {
         console.log(event, d);
         let value = d[1] - d[0];
