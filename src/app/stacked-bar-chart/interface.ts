@@ -4,7 +4,10 @@ export declare interface Data {
   z2: number;
 }
 export type stackColor = {
-  [k: string]: string;
+  [k: string]: {
+    normal: string;
+    focus: string;
+  };
 };
 
 export declare interface ChartData {

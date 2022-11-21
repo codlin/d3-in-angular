@@ -74,7 +74,16 @@ export class StackedBarChartComponent
       this.data = {
         items,
         colums: ['x', 'z1', 'z2'],
-        colors: { z1: '#68C214', z2: '#fff633' } as stackColor,
+        colors: {
+          z1: {
+            normal: '#68D214',
+            focus: '#68C214',
+          },
+          z2: {
+            normal: '#fff633',
+            focus: '#ffe633',
+          },
+        } as stackColor,
       };
       this.createChart();
     });
@@ -131,7 +140,7 @@ export class StackedBarChartComponent
 
     const colors = this.data.colors;
     const zColors = Object.keys(this.data.colors).map(
-      (k) => this.data.colors[k]
+      (k) => this.data.colors[k].normal
     );
     // Construct scales, axes, and formats.
     const xScale = d3.scaleBand(xDomain, xRange).padding(0.2);
@@ -248,12 +257,18 @@ export class StackedBarChartComponent
           title: d['data']['x'].toString(),
           items: [
             {
-              color: colors[subgroup.key],
+              color: colors[subgroup.key].normal,
               key: subgroup.key,
               value: value.toString(),
             },
           ],
         };
+
+        d3.select(this)
+          .transition()
+          .duration(350)
+          .ease(d3.easeLinear)
+          .attr('fill', colors[subgroup.key].focus);
 
         // 显示提示条
         d3.select('#tooltip').classed('hidden', false);
@@ -267,6 +282,13 @@ export class StackedBarChartComponent
         //.text(event);
       })
       .on('mouseout', function () {
+        let subgroup: any = d3.select(this.parentElement).datum();
+        console.log(subgroup);
+        d3.select(this)
+          .transition()
+          .duration(350)
+          .ease(d3.easeLinear)
+          .attr('fill', colors[subgroup.key].normal);
         /// 隐藏提示条
         d3.select('#tooltip').classed('hidden', true);
       });
