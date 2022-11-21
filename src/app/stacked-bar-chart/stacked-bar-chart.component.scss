@@ -25,12 +25,34 @@
   -ms-user-select: none;
   user-select: none;
 }
+
 #tooltip.hidden {
   display: none;
 }
+
 #tooltip p {
   margin: 0;
   font-family: Arial, sans-serif;
   // font-size: 16px;
   line-height: 20px;
+}
+#title {
+  font-weight: bold;
+}
+
+table {
+  border-spacing: 0;
+  font-size: 12;
+}
+
+table td {
+  padding: 2px 9px 2px 0;
+  vertical-align: middle;
+}
+
+.legend-color-guide div {
+  vertical-align: middle;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #999;
 }

@@ -11,10 +11,14 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import * as d3 from 'd3';
-import { schemeDark2 } from 'd3';
 import { fromEvent } from 'rxjs';
 
-import { ChartData, Data, stackColor } from './interface';
+import {
+  ChartData,
+  CharToolTip as ChartToolTip,
+  Data,
+  stackColor,
+} from './interface';
 import { removeExistingChart } from './stacked-bar-chart';
 
 @Component({
@@ -33,6 +37,10 @@ export class StackedBarChartComponent
   @Input() yTick = true; // chart show vertical lines
   @Input() title!: string;
   data!: ChartData;
+  toolTip: ChartToolTip = {
+    title: '',
+    items: [{ color: '#fffff', key: '', value: '' }],
+  };
 
   @ViewChild('stackedBarChart') chart!: ElementRef;
   tipTitle: string = '';
@@ -122,13 +130,14 @@ export class StackedBarChartComponent
     let yRange = [this.height - this.margin.bottom, this.margin.top]; // [bottom, top]
     console.log('yRange', yRange);
 
-    const colors = Object.keys(this.data.colors).map(
+    const colors = this.data.colors;
+    const zColors = Object.keys(this.data.colors).map(
       (k) => this.data.colors[k]
     );
     // Construct scales, axes, and formats.
     const xScale = d3.scaleBand(xDomain, xRange).padding(0.2);
     const yScale = d3.scaleLinear(yDomain, yRange).nice();
-    const color = d3.scaleOrdinal(zDomain, colors);
+    const color = d3.scaleOrdinal(zDomain, zColors);
 
     const svg = d3
       .select(this.hostElement)
@@ -203,6 +212,7 @@ export class StackedBarChartComponent
     const stackedData = d3.stack().keys(zDomain)(data);
     console.log('stacked data', stackedData);
 
+    const that = this;
     const bar = svg
       .append('g')
       .selectAll('g')
@@ -227,12 +237,38 @@ export class StackedBarChartComponent
       .attr('y', ([, end]) => yScale(end))
       .attr('height', ([y1, y2]) => Math.abs(yScale(y1) - yScale(y2)))
       .attr('width', xScale.bandwidth())
+      // .attr('cursor', 'pointer')
       .on('mouseover', function (event, d) {
         console.log(event, d);
+        let subgroup: any = d3.select(this.parentElement).datum();
+        console.log(subgroup);
+        d3.select('#tooltip').select('#title').text(subgroup.key);
+
         let value = d[1] - d[0];
-        let data = d['data'] as unknown as Data;
-        d3.select('#tooltip').select('#title').text(data.x);
-        d3.select('#tooltip').select('#values').text(value);
+        console.log(colors[subgroup.key]);
+        that.toolTip = {
+          title: subgroup.key,
+          items: [
+            {
+              color: colors[subgroup.key],
+              key: d['data']['x'].toString(),
+              value: value.toString(),
+            },
+          ],
+        };
+
+        //d3.select('#legend-color-guide')
+        //  .data(that.toolTip.items)
+        //  .enter()
+        //  .selectAll('div')
+        //  .data((d: any) => {
+        //    console.log(d);
+        //    return d;
+        //  })
+        //  .enter();
+        //  .text(value)
+        //  .style('background-color', colors[subgroup.key]);
+
         // 显示提示条
         d3.select('#tooltip').classed('hidden', false);
       })
@@ -240,9 +276,9 @@ export class StackedBarChartComponent
         // 更新提示条的位置和值
         d3.select('#tooltip')
           .style('top', event.pageY - 10 + 'px')
-          .style('left', event.pageX + 10 + 'px')
-          .select('#value')
-          .text(event);
+          .style('left', event.pageX + 10 + 'px');
+        //.select('#value')
+        //.text(event);
       })
       .on('mouseout', function () {
         /// 隐藏提示条

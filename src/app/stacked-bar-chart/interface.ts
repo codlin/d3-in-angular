@@ -12,3 +12,13 @@ export declare interface ChartData {
   colums: string[];
   colors: stackColor;
 }
+
+export declare interface Tips {
+  color: string;
+  key: string;
+  value: string;
+}
+export declare interface CharToolTip {
+  title: string;
+  items: Tips[];
+}

@@ -1,7 +1,22 @@
 <div #stackedBarChart>
     <svg></svg>
     <div #tooltip id="tooltip" class="hidden">
-        <p id="title"></p>
+        <table>
+            <thead>
+                <tr>
+                    <td colspan="3"><strong id="title">{{ toolTip.title }}</strong></td>
+                </tr>
+            </thead>
+        </table>
+        <tbody>
+            <tr *ngFor="let item of toolTip.items">
+                <td class="legend-color-guide">
+                    <div [ngStyle]="{'background-color': item.color}"></div>
+                </td>
+                <td class="key">{{item.key}}</td>
+                <td class="value">{{item.value}}</td>
+            </tr>
+        </tbody>
         <p id="values"></p>
     </div>
 </div>
