@@ -43,7 +43,6 @@ export class StackedBarChartComponent
   };
 
   @ViewChild('stackedBarChart') chart!: ElementRef;
-  tipTitle: string = '';
   typeName = '';
   typeValue = 0;
 
@@ -210,7 +209,7 @@ export class StackedBarChartComponent
     // Omit any data not present in the x- and z-domains.
     const data: any = this.data.items;
     const stackedData = d3.stack().keys(zDomain)(data);
-    console.log('stacked data', stackedData);
+    // console.log('stacked data', stackedData);
 
     const that = this;
     const bar = svg
@@ -225,7 +224,7 @@ export class StackedBarChartComponent
       .selectAll('rect')
       // enter a second time = loop subgroup per subgroup to add all rectangles
       .data((d) => {
-        console.log(d);
+        // console.log(d);
         return d;
       })
       .enter()
@@ -239,35 +238,22 @@ export class StackedBarChartComponent
       .attr('width', xScale.bandwidth())
       // .attr('cursor', 'pointer')
       .on('mouseover', function (event, d) {
-        console.log(event, d);
+        // console.log(event, d);
         let subgroup: any = d3.select(this.parentElement).datum();
-        console.log(subgroup);
-        d3.select('#tooltip').select('#title').text(subgroup.key);
+        // console.log(subgroup);
 
         let value = d[1] - d[0];
         console.log(colors[subgroup.key]);
         that.toolTip = {
-          title: subgroup.key,
+          title: d['data']['x'].toString(),
           items: [
             {
               color: colors[subgroup.key],
-              key: d['data']['x'].toString(),
+              key: subgroup.key,
               value: value.toString(),
             },
           ],
         };
-
-        //d3.select('#legend-color-guide')
-        //  .data(that.toolTip.items)
-        //  .enter()
-        //  .selectAll('div')
-        //  .data((d: any) => {
-        //    console.log(d);
-        //    return d;
-        //  })
-        //  .enter();
-        //  .text(value)
-        //  .style('background-color', colors[subgroup.key]);
 
         // 显示提示条
         d3.select('#tooltip').classed('hidden', false);
